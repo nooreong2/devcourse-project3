@@ -56,10 +56,11 @@ def etl(execution_date, schema, table):
         # 각 줄에서 데이터를 추출합니다.
         row_data = row.split(",")
         date = datetime.strptime(row_data[0], "%Y%m%d%H%M")  # 문자열을 datetime 객체로 변환합니다.
+        formatted_date = date.strftime("%Y-%m-%d %H:%M")  # 원하는 형식으로 날짜와 시간을 포맷팅합니다.
         stn = int(row_data[1])
         pm10 = int(row_data[2])
         # Redshift 테이블에 데이터를 삽입합니다.
-        cur.execute(f"INSERT INTO {schema}.{table} (date, stn, pm10) VALUES (%s, %s, %s)", (date, stn, pm10))
+        cur.execute(f"INSERT INTO {schema}.{table} (date, stn, pm10) VALUES (%s, %s, %s)", (formatted_date, stn, pm10))
 
     # 변경사항을 저장합니다.
     cur.connection.commit()
