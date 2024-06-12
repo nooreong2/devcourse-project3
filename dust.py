@@ -49,7 +49,7 @@ def etl(execution_date, schema, table):
     print(data)
     cur = get_Redshift_connection()
 
-    cur.execute(f"CREATE TABLE IF NOT EXISTS {schema}.{table} (date DATE, stn INT, pm10 INT)")
+    cur.execute(f"CREATE TABLE IF NOT EXISTS {schema}.{table} (date TIMESTAMP, stn INT, pm10 INT)")
 
     rows = data.strip().split("\n")
     for row in rows:
