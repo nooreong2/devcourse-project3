@@ -3,6 +3,8 @@ from airflow.operators.python import PythonOperator  # Airflow 2.x에서는 이�
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.utils.dates import days_ago
 from airflow.models import Variable
+from airflow.exceptions import AirflowException
+
 from datetime import datetime, timedelta
 import requests
 import logging
@@ -35,29 +37,12 @@ def etl(execution_date, schema, table):
 
         response = download_file(url, params)
         data += response + "\n"
-
+    print(data)
     print("execution korea timedate: ", execution_date + timedelta(hours=9))
 
-    cur = get_Redshift_connection()
+    # cur = get_Redshift_connection()
 
-    sql = f"""DROP TABLE IF EXISTS {schema}.temp_{table};CREATE TABLE {schema}.temp_{table} AS """
-
-    cur.execute(sql)
-
-    # cur.execute(f"""SELECT COUNT(1) FROM {schema}.temp_{table}""")
-    # count = cur.fetchone()[0]
-    # if count == 0:
-    #     raise ValueError(f"{schema}.{table} didn't have any record")
-
-    # try:
-    #     sql = f"""DROP TABLE IF EXISTS {schema}.{table};ALTER TABLE {schema}.temp_{table} RENAME to {table};"""
-    #     sql += "COMMIT;"
-    #     logging.info(sql)
-    #     cur.execute(sql)
-    # except Exception as e:
-    #     cur.execute("ROLLBACK")
-    #     logging.error("Failed to sql. Completed ROLLBACK!")
-    #     raise AirflowException("")
+    # cur.execute(f"CREATE TABLE IF NOT EXISTS {schema}.{table} (date DATE, stn INT, pm10 INT, flag CHAR, mqc CHAR)")
 
 
 # DAG 정의
