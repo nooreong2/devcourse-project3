@@ -35,6 +35,7 @@ def etl(execution_date, **kwargs):  # execution_date 인수 추가
         response = download_file(url, params)
         data += response + "\n"
 
+    print("execution date: ", execution_date)
     print(data)
 
     # 아래 코드는 필요에 따라 다시 활성화
