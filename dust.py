@@ -30,7 +30,7 @@ def etl(execution_date, schema, table):
     city = ["108", "119"]
     data = ""
     tm1 = (execution_date + timedelta(hours=9)).strftime("%Y%m%d%H%M")
-    tm2 = (execution_date + timedelta(hours=10)).strftime("%Y%m%d%H%M")
+    tm2 = (execution_date + timedelta(hours=9, minutes=55)).strftime("%Y%m%d%H%M")
 
     for stn in city:
         url = "https://apihub.kma.go.kr/api/typ01/url/kma_pm10.php"
