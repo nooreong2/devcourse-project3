@@ -27,11 +27,12 @@ def download_file(file_url, params):
 
 
 # ETL 함수
+# ETL 함수
 def etl(execution_date, schema, table):
     city = ["108", "119"]
     data = ""
-    tm1 = (execution_date + timedelta(hours=9)).strftime("%Y%m%d%H%M")
-    tm2 = (execution_date + timedelta(hours=9, minutes=55)).strftime("%Y%m%d%H%M")
+    tm1 = datetime(24, 6, 11, 9).strftime("%Y%m%d%H%M")
+    tm2 = datetime(24, 6, 12, 18).strftime("%Y%m%d%H%M")
 
     for stn in city:
         url = "https://apihub.kma.go.kr/api/typ01/url/kma_pm10.php"
@@ -51,21 +52,9 @@ def etl(execution_date, schema, table):
 
     cur = get_Redshift_connection()
 
-    # 임시 테이블 생성
-    temp_table_name = f"{table}_temp"
-    cur.execute(f"CREATE TABLE IF NOT EXISTS {schema}.{temp_table_name} (date TIMESTAMP, stn INT, pm10 INT)")
+    cur.execute(f"CREATE TABLE IF NOT EXISTS {schema}.{table} (date TIMESTAMP, stn INT, pm10 INT)")
 
-    # 기존 테이블이 존재하는지 확인
-    cur.execute(
-        f"SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = '{schema}' AND table_name = '{table}')"
-    )
-    table_exists = cur.fetchone()[0]
-
-    if table_exists:
-        # 기존 데이터를 temp 테이블에 복사
-        cur.execute(f"INSERT INTO {schema}.{temp_table_name} SELECT * FROM {schema}.{table}")
-
-    # 새로운 데이터를 temp 테이블에 삽입
+    # 새로운 데이터를 테이블에 삽입
     rows = data.strip().split("\n")
     for row in rows:
         # 각 줄에서 데이터를 추출합니다.
@@ -75,14 +64,7 @@ def etl(execution_date, schema, table):
         stn = int(row_data[1])
         pm10 = int(row_data[2])
         # 새로운 데이터를 temp 테이블에 삽입합니다.
-        cur.execute(f"INSERT INTO {schema}.{temp_table_name} (date, stn, pm10) VALUES (%s, %s, %s)", (formatted_date, stn, pm10))
-
-    if table_exists:
-        # 기존 테이블 삭제
-        cur.execute(f"DROP TABLE IF EXISTS {schema}.{table}")
-
-    # 임시 테이블 이름 변경
-    cur.execute(f"ALTER TABLE {schema}.{temp_table_name} RENAME TO {table}")
+        cur.execute(f"INSERT INTO {schema}.{table} (date, stn, pm10) VALUES (%s, %s, %s)", (formatted_date, stn, pm10))
 
     # 변경사항을 저장합니다.
     cur.connection.commit()
@@ -100,9 +82,9 @@ default_args = {
 dag = DAG(
     "dust_to_redshift",
     default_args=default_args,
-    start_date=datetime(2024, 6, 12),
-    description="ETL DAG for KMA PM10 data",
-    schedule_interval="0 * * * *",
+    start_date=datetime(2024, 6, 11),
+    description="ETL DAG for KMA PM10 data Batch",
+    schedule_interval="@once",
 )
 
 # PythonOperator를 사용하여 ETL 작업 수행
