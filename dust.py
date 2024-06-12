@@ -73,7 +73,7 @@ dag = DAG(
     default_args=default_args,
     start_date=datetime(2024, 6, 10),
     description="ETL DAG for KMA PM10 data",
-    schedule_interval="*/0 1 * * *",
+    schedule_interval="0 * * * *",
 )
 
 # PythonOperator를 사용하여 ETL 작업 수행
