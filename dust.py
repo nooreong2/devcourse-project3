@@ -26,8 +26,8 @@ def download_file(file_url, params):
 def etl(execution_date, **kwargs):  # execution_date 인수 추가
     city = ["108", "119"]
     data = ""
-    tm1 = execution_date.strftime("%Y%m%d%H%M")
-    tm2 = (execution_date + timedelta(hours=1)).strftime("%Y%m%d%H%M")
+    tm1 = (execution_date + timedelta(hours=9)).strftime("%Y%m%d%H%M")
+    tm2 = (execution_date + timedelta(hours=10)).strftime("%Y%m%d%H%M")
 
     for stn in city:
         url = "https://apihub.kma.go.kr/api/typ01/url/kma_pm10.php"
@@ -36,7 +36,7 @@ def etl(execution_date, **kwargs):  # execution_date 인수 추가
         response = download_file(url, params)
         data += response + "\n"
 
-    print("execution date: ", execution_date)
+    print("execution korea timedate: ", execution_date + timedelta(hours=9))
     print(data)
 
     # 아래 코드는 필요에 따라 다시 활성화
