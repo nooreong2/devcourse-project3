@@ -49,6 +49,9 @@ def etl(execution_date, schema, table):
     print(data)
     cur = get_Redshift_connection()
 
+    # 테이블 작업을 위한 트랜잭션 블록 시작
+    cur.execute("BEGIN")
+
     # 임시 테이블 생성
     temp_table_name = f"{table}_temp"
     cur.execute(f"CREATE TABLE IF NOT EXISTS {schema}.{temp_table_name} (date TIMESTAMP, stn INT, pm10 INT)")
@@ -82,6 +85,8 @@ def etl(execution_date, schema, table):
     cur.execute("BEGIN")
 
     if table_exists:
+        # 테이블 잠금
+        cur.execute(f"LOCK TABLE {schema}.{table} IN ACCESS EXCLUSIVE MODE")
         # 기존 테이블 삭제
         cur.execute(f"DROP TABLE IF EXISTS {schema}.{table}")
 
