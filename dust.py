@@ -2,6 +2,7 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator  # Airflow 2.x에서는 이렇게 import
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.utils.dates import days_ago
+from airflow.models import Variable
 from datetime import datetime, timedelta
 import requests
 import logging
@@ -25,12 +26,12 @@ def download_file(file_url, params):
 def etl(execution_date, **kwargs):  # execution_date 인수 추가
     city = ["108", "119"]
     data = ""
-    tm2 = execution_date.strftime("%Y%m%d%H%M")
-    tm1 = (execution_date - timedelta(minutes=30)).strftime("%Y%m%d%H%M")
+    tm1 = execution_date.strftime("%Y%m%d%H%M")
+    tm2 = (execution_date + timedelta(hours=1)).strftime("%Y%m%d%H%M")
 
     for stn in city:
         url = "https://apihub.kma.go.kr/api/typ01/url/kma_pm10.php"
-        params = {"tm1": tm1, "tm2": tm2, "stn": stn, "authKey": "Rd1YWyRfRbmdWFskX-W5ag"}
+        params = {"tm1": tm1, "tm2": tm2, "stn": stn, "authKey": Variable.get("weather_auth_key")}
 
         response = download_file(url, params)
         data += response + "\n"
@@ -71,7 +72,7 @@ default_args = {
 dag = DAG(
     "dust_to_redshift",
     default_args=default_args,
-    start_date=datetime(2024, 6, 10),
+    start_date=datetime(2024, 6, 11),
     description="ETL DAG for KMA PM10 data",
     schedule_interval="0 * * * *",
 )
