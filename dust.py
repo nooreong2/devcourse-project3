@@ -51,8 +51,18 @@ def etl(execution_date, schema, table):
 
     cur.execute(f"CREATE TABLE IF NOT EXISTS {schema}.{table} (date TIMESTAMP, stn INT, pm10 INT)")
 
-    rows = data.strip().split("\n")
-    for row in rows:
+    # 새로운 데이터만 추출하기 위해 이전 데이터가 있는지 확인합니다.
+    cur.execute(f"SELECT MAX(date) FROM {schema}.{table}")
+    result = cur.fetchone()
+    if result:
+        max_date = result[0]
+        # 이전 데이터가 있으면 해당 이후의 데이터만 추출합니다.
+        new_data = [row for row in data.strip().split("\n") if datetime.strptime(row.split(",")[0], "%Y%m%d%H%M") > max_date]
+    else:
+        # 이전 데이터가 없으면 모든 데이터를 사용합니다.
+        new_data = data.strip().split("\n")
+
+    for row in new_data:
         # 각 줄에서 데이터를 추출합니다.
         row_data = row.split(",")
         date = datetime.strptime(row_data[0], "%Y%m%d%H%M")  # 문자열을 datetime 객체로 변환합니다.
