@@ -23,7 +23,7 @@ def download_file(file_url, params):
 
 
 # ETL 함수
-def etl(execution_date, **kwargs):  # execution_date 인수 추가
+def etl(execution_date, schema, table):
     city = ["108", "119"]
     data = ""
     tm1 = (execution_date + timedelta(hours=9)).strftime("%Y%m%d%H%M")
@@ -37,29 +37,27 @@ def etl(execution_date, **kwargs):  # execution_date 인수 추가
         data += response + "\n"
 
     print("execution korea timedate: ", execution_date + timedelta(hours=9))
-    print(data)
 
-    # 아래 코드는 필요에 따라 다시 활성화
-    # cur = get_Redshift_connection()
-    # drop_recreate_sql = f"""DROP TABLE IF EXISTS {schema}.{table};
-    # CREATE TABLE {schema}.{table} (
-    #     date date,
-    #     stn int,
-    #     pm10 int,
-    #     flag char,
-    #     mqc char,
-    # );
-    # """
-    # insert_sql = f"""INSERT INTO {schema}.{table} VALUES """ + ",".join(data)
-    # logging.info(drop_recreate_sql)
-    # logging.info(insert_sql)
+    cur = get_Redshift_connection()
+
+    sql = f"""DROP TABLE IF EXISTS {schema}.temp_{table};CREATE TABLE {schema}.temp_{table} AS """
+
+    cur.execute(sql)
+
+    # cur.execute(f"""SELECT COUNT(1) FROM {schema}.temp_{table}""")
+    # count = cur.fetchone()[0]
+    # if count == 0:
+    #     raise ValueError(f"{schema}.{table} didn't have any record")
+
     # try:
-    #     cur.execute(drop_recreate_sql)
-    #     cur.execute(insert_sql)
-    #     cur.execute("Commit;")
+    #     sql = f"""DROP TABLE IF EXISTS {schema}.{table};ALTER TABLE {schema}.temp_{table} RENAME to {table};"""
+    #     sql += "COMMIT;"
+    #     logging.info(sql)
+    #     cur.execute(sql)
     # except Exception as e:
-    #     cur.execute("Rollback;")
-    #     raise
+    #     cur.execute("ROLLBACK")
+    #     logging.error("Failed to sql. Completed ROLLBACK!")
+    #     raise AirflowException("")
 
 
 # DAG 정의
@@ -81,8 +79,6 @@ dag = DAG(
 run_etl = PythonOperator(
     task_id="run_etl",
     python_callable=etl,
+    op_kwargs={"schema": "nooreong0503", "table": "dust"},
     dag=dag,
 )
-
-# 태스크를 직접 호출하지 않습니다.
-# run_etl()
