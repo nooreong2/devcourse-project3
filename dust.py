@@ -53,8 +53,15 @@ def etl(execution_date, schema, table):
     temp_table_name = f"{table}_temp"
     cur.execute(f"CREATE TABLE IF NOT EXISTS {schema}.{temp_table_name} (date TIMESTAMP, stn INT, pm10 INT)")
 
-    # 기존 데이터를 temp 테이블에 복사
-    cur.execute(f"INSERT INTO {schema}.{temp_table_name} SELECT * FROM {schema}.{table}")
+    # 기존 테이블이 존재하는지 확인
+    cur.execute(
+        f"SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = '{schema}' AND table_name = '{table}')"
+    )
+    table_exists = cur.fetchone()[0]
+
+    if table_exists:
+        # 기존 데이터를 temp 테이블에 복사
+        cur.execute(f"INSERT INTO {schema}.{temp_table_name} SELECT * FROM {schema}.{table}")
 
     # 새로운 데이터를 temp 테이블에 삽입
     rows = data.strip().split("\n")
@@ -68,8 +75,9 @@ def etl(execution_date, schema, table):
         # 새로운 데이터를 temp 테이블에 삽입합니다.
         cur.execute(f"INSERT INTO {schema}.{temp_table_name} (date, stn, pm10) VALUES (%s, %s, %s)", (formatted_date, stn, pm10))
 
-    # 기존 테이블 삭제
-    cur.execute(f"DROP TABLE IF EXISTS {schema}.{table}")
+    if table_exists:
+        # 기존 테이블 삭제
+        cur.execute(f"DROP TABLE IF EXISTS {schema}.{table}")
 
     # 임시 테이블 이름 변경
     cur.execute(f"ALTER TABLE {schema}.{temp_table_name} RENAME TO {table}")
