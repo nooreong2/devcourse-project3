@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import requests
 import logging
 import re
+import uuid
 
 
 def get_Redshift_connection():
@@ -49,11 +50,13 @@ def etl(execution_date, schema, table):
     print(data)
     cur = get_Redshift_connection()
 
-    # 테이블 작업을 위한 트랜잭션 블록 시작
+    # 고유한 임시 테이블 이름 생성
+    temp_table_name = f"{table}_temp_{uuid.uuid4().hex}"
+
+    # 트랜잭션 블록 시작
     cur.execute("BEGIN")
 
     # 임시 테이블 생성
-    temp_table_name = f"{table}_temp"
     cur.execute(f"CREATE TABLE IF NOT EXISTS {schema}.{temp_table_name} (date TIMESTAMP, stn INT, pm10 INT)")
 
     # 기존 테이블이 존재하는지 확인
@@ -63,25 +66,25 @@ def etl(execution_date, schema, table):
     table_exists = cur.fetchone()[0]
 
     if table_exists:
-        # 기존 데이터를 temp 테이블에 복사
+        # 기존 데이터를 임시 테이블에 복사
         cur.execute(f"INSERT INTO {schema}.{temp_table_name} SELECT * FROM {schema}.{table}")
 
-    # 새로운 데이터를 temp 테이블에 삽입
+    # 새로운 데이터를 임시 테이블에 삽입
     rows = data.strip().split("\n")
     for row in rows:
-        # 각 줄에서 데이터를 추출합니다.
+        # 각 줄에서 데이터를 추출
         row_data = row.split(",")
-        date = datetime.strptime(row_data[0], "%Y%m%d%H%M")  # 문자열을 datetime 객체로 변환합니다.
-        formatted_date = date.strftime("%Y-%m-%d %H:%M")  # 원하는 형식으로 날짜와 시간을 포맷팅합니다.
+        date = datetime.strptime(row_data[0], "%Y%m%d%H%M")  # 문자열을 datetime 객체로 변환
+        formatted_date = date.strftime("%Y-%m-%d %H:%M:%S")  # 날짜와 시간을 원하는 형식으로 포맷팅
         stn = int(row_data[1])
         pm10 = int(row_data[2])
-        # 새로운 데이터를 temp 테이블에 삽입합니다.
+        # 새로운 데이터를 임시 테이블에 삽입
         cur.execute(f"INSERT INTO {schema}.{temp_table_name} (date, stn, pm10) VALUES (%s, %s, %s)", (formatted_date, stn, pm10))
 
-    # 변경사항을 저장합니다.
+    # 변경사항 저장
     cur.connection.commit()
 
-    # 테이블 이름 변경하기 전에 트랜잭션을 시작
+    # 테이블 이름 변경 전에 트랜잭션 시작
     cur.execute("BEGIN")
 
     if table_exists:
@@ -90,13 +93,13 @@ def etl(execution_date, schema, table):
         # 기존 테이블 삭제
         cur.execute(f"DROP TABLE IF EXISTS {schema}.{table}")
 
-    # 임시 테이블 이름 변경
+    # 임시 테이블 이름을 실제 테이블 이름으로 변경
     cur.execute(f"ALTER TABLE {schema}.{temp_table_name} RENAME TO {table}")
 
-    # 변경사항을 저장합니다.
+    # 변경사항 저장
     cur.connection.commit()
 
-    # Redshift 연결을 닫습니다.
+    # Redshift 연결 닫기
     cur.close()
 
 
