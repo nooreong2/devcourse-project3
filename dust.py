@@ -30,7 +30,7 @@ def etl(execution_date, schema, table):
     city = ["108", "119"]
     data = ""
     tm1 = (execution_date + timedelta(hours=9)).strftime("%Y%m%d%H%M")
-    tm2 = (execution_date + timedelta(hours=9, minutes=55)).strftime("%Y%m%d%H%M")
+    tm2 = (execution_date + timedelta(hours=10)).strftime("%Y%m%d%H%M")
 
     for stn in city:
         url = "https://apihub.kma.go.kr/api/typ01/url/kma_pm10.php"
@@ -75,6 +75,12 @@ def etl(execution_date, schema, table):
         # 새로운 데이터를 temp 테이블에 삽입합니다.
         cur.execute(f"INSERT INTO {schema}.{temp_table_name} (date, stn, pm10) VALUES (%s, %s, %s)", (formatted_date, stn, pm10))
 
+    # 변경사항을 저장합니다.
+    cur.connection.commit()
+
+    # 테이블 이름 변경하기 전에 트랜잭션을 시작
+    cur.execute("BEGIN")
+
     if table_exists:
         # 기존 테이블 삭제
         cur.execute(f"DROP TABLE IF EXISTS {schema}.{table}")
@@ -84,6 +90,7 @@ def etl(execution_date, schema, table):
 
     # 변경사항을 저장합니다.
     cur.connection.commit()
+
     # Redshift 연결을 닫습니다.
     cur.close()
 
