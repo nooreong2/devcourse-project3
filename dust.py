@@ -8,6 +8,7 @@ from airflow.exceptions import AirflowException
 from datetime import datetime, timedelta
 import requests
 import logging
+import re
 
 
 def get_Redshift_connection():
@@ -36,9 +37,16 @@ def etl(execution_date, schema, table):
         params = {"tm1": tm1, "tm2": tm2, "stn": stn, "authKey": Variable.get("weather_auth_key")}
 
         response = download_file(url, params)
-        data += response + "\n"
-    print(data)
+        # 헤더를 제외하고 숫자 데이터만 가져오기
+        numeric_data = re.findall(r"\d{12},\s*\d+,\s*\d+", response)
+        for index, line in enumerate(numeric_data):
+            line = line.replace(" ", "")  # 공백 제거
+            data += line
+            if index < len(numeric_data) - 1 or stn != city[-1]:  # 마지막 행이 아니거나 마지막 도시가 아니면 개행 추가
+                data += "\n"
+
     print("execution korea timedate: ", execution_date + timedelta(hours=9))
+    print(data)
 
     # cur = get_Redshift_connection()
 
