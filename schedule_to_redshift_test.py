@@ -16,65 +16,56 @@ import psycopg2
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
 
+
 # Redshift 연결 함수
 def get_Redshift_connection():
-    conn = psycopg2.connect(
-        dbname='',
-        user='',
-        password='',
-        host='',
-        port='5439'
-    )
+    conn = psycopg2.connect(dbname="", user="", password="", host="", port="5439")
     return conn.cursor(), conn
+
 
 # Extract Task
 @task
 def extract():
     logging.info("Starting extract task")
     options = webdriver.ChromeOptions()
-    options.add_argument('--headless')
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
-    options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument(
+        "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    )
 
     driver = webdriver.Chrome(options=options)
-    url = 'https://www.koreabaseball.com/Schedule/Schedule.aspx'
+    url = "https://www.koreabaseball.com/Schedule/Schedule.aspx"
     driver.get(url)
 
     games = []
 
-    korea_tz = pytz.timezone('Asia/Seoul')
+    korea_tz = pytz.timezone("Asia/Seoul")
     today = datetime.now(korea_tz).strftime("%m.%d")
 
     try:
         time.sleep(2)
-        schedule_table = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CLASS_NAME, 'tbl'))
-        )
+        schedule_table = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "tbl")))
 
-        rows = schedule_table.find_elements(By.TAG_NAME, 'tr')
+        rows = schedule_table.find_elements(By.TAG_NAME, "tr")
 
         current_date = None
         for row in rows:
-            columns = row.find_elements(By.TAG_NAME, 'td')
+            columns = row.find_elements(By.TAG_NAME, "td")
             if len(columns) > 0:
-                if 'day' in columns[0].get_attribute('class'):
-                    current_date = columns[0].text.strip().split('(')[0].strip()  # 요일 부분 제거
+                if "day" in columns[0].get_attribute("class"):
+                    current_date = columns[0].text.strip().split("(")[0].strip()  # 요일 부분 제거
                     game_time = columns[1].text.strip()
-                    teams = re.sub(r'\d+', '', columns[2].text.strip()).replace('\n', ' ')
+                    teams = re.sub(r"\d+", "", columns[2].text.strip()).replace("\n", " ")
                     stadium = columns[7].text.strip()
                 else:
                     game_time = columns[0].text.strip()
-                    teams = re.sub(r'\d+', '', columns[1].text.strip()).replace('\n', ' ')
+                    teams = re.sub(r"\d+", "", columns[1].text.strip()).replace("\n", " ")
                     stadium = columns[6].text.strip()
 
                 if current_date == today:
-                    game = {
-                        'date': current_date,
-                        'time': game_time,
-                        'teams': teams,
-                        'stadium': stadium
-                    }
+                    game = {"date": current_date, "time": game_time, "teams": teams, "stadium": stadium}
                     games.append(game)
     except Exception as e:
         logging.error(f"Error processing schedule: {e}")
@@ -85,6 +76,7 @@ def extract():
     logging.info(f"Extracted JSON: {json_data}")
     return json_data
 
+
 # Transform Task
 @task
 def transform(json_data):
@@ -94,15 +86,16 @@ def transform(json_data):
         current_year = datetime.now().year
         for game in games:
             # 날짜 형식을 'YYYYMMDD' 형식으로 변환
-            date_str = game['date']
+            date_str = game["date"]
             date_obj = datetime.strptime(f"{current_year}.{date_str}", "%Y.%m.%d")
-            game['date'] = date_obj.strftime("%Y%m%d")
+            game["date"] = date_obj.strftime("%Y%m%d")
         transformed_data = json.dumps(games, ensure_ascii=False)
         logging.info(f"Transformed JSON: {transformed_data}")
         return transformed_data
     except Exception as e:
         logging.error(f"Error in transform task: {e}")
         raise
+
 
 # Load Task
 @task
@@ -171,22 +164,23 @@ def load(transformed_data, schema, table):
         cur.close()
         conn.close()
 
+
 # Airflow DAG 정의
 default_args = {
-    'retries': 1,
-    'retry_delay': timedelta(minutes=3),
+    "retries": 1,
+    "retry_delay": timedelta(minutes=3),
 }
 
 with DAG(
-    dag_id='kbo_schedule_scraper',
+    dag_id="kbo_schedule_scraper",
     start_date=datetime(2024, 6, 12),
-    schedule_interval='0 0,10 * * *',  # 매일 0시와 0시 10분에 실행
+    schedule_interval="0 0,10 * * *",  # 매일 0시와 0시 10분에 실행
     max_active_runs=1,
     catchup=False,
-    default_args=default_args
+    default_args=default_args,
 ) as dag:
 
-    schema = "ceh8236"
+    schema = "nooroneg0503"
     table = "kbo_schedule"
 
     extracted_data = extract()

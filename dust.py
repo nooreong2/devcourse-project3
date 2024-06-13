@@ -100,7 +100,7 @@ default_args = {
 dag = DAG(
     "dust_to_redshift",
     default_args=default_args,
-    start_date=datetime(2024, 6, 12, 20),
+    start_date=datetime(2024, 6, 11),
     description="ETL DAG for KMA PM10 data",
     schedule_interval="0 * * * *",
 )
