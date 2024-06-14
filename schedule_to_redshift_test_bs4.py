@@ -62,10 +62,11 @@ def extract():
 def load(json_df, schema, table):
     logging.info("Starting load task")
     conn = None
+    temp_table = None
     try:
         df = pd.read_json(json_df, orient="records")
-        conn = get_Redshift_connection()
-        cur = conn.cursor()
+        cur = get_Redshift_connection()
+        conn = cur.connection  
 
         temp_table = f"{schema}.{table}_temp"
         create_temp_table_sql = f"CREATE TEMP TABLE {temp_table} (LIKE {schema}.{table});"
@@ -92,10 +93,11 @@ def load(json_df, schema, table):
         logging.error(f"Error in load task: {e}")
         raise
     finally:
-        if conn:
-            drop_temp_table_sql = f"DROP TABLE IF EXISTS {temp_table};"
-            logging.info(drop_temp_table_sql)
-            cur.execute(drop_temp_table_sql)
+        if conn and cur:
+            if temp_table:
+                drop_temp_table_sql = f"DROP TABLE IF EXISTS {temp_table};"
+                logging.info(drop_temp_table_sql)
+                cur.execute(drop_temp_table_sql)
             cur.close()
             conn.close()
 
@@ -105,7 +107,7 @@ def load(json_df, schema, table):
 with DAG(
     dag_id="kbo_schedule",
     start_date=datetime(2024, 6, 12),
-    schedule_interval="0 0,10 * * *",  # 매일 0시와 0시 10분에 실행
+    schedule_interval="0 0 * * *",  # 매일 0시 실행
     max_active_runs=1,
     catchup=False,
     default_args={
