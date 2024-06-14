@@ -66,7 +66,18 @@ def load(json_df, schema, table):
     try:
         df = pd.read_json(json_df, orient="records")
         cur = get_Redshift_connection()
-        conn = cur.connection  
+        conn = cur.connection
+
+        # 테이블이 존재하지 않는 경우 생성하는 쿼리
+        create_main_table_sql = f"""
+        CREATE TABLE IF NOT EXISTS {schema}.{table} (
+            date DATE,
+            time VARCHAR(10),
+            teams VARCHAR(100),
+            location VARCHAR(100)
+        );
+        """
+        cur.execute(create_main_table_sql)  
 
         temp_table = f"{schema}.{table}_temp"
         create_temp_table_sql = f"CREATE TEMP TABLE {temp_table} (LIKE {schema}.{table});"
