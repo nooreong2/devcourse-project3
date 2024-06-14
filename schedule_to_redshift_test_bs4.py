@@ -79,7 +79,7 @@ def load(json_df, schema, table):
         """
         cur.execute(create_main_table_sql)  
 
-        temp_table = f"{schema}.{table}_temp"
+        temp_table = f"{table}_temp"
         create_temp_table_sql = f"CREATE TEMP TABLE {temp_table} (LIKE {schema}.{table});"
         logging.info(create_temp_table_sql)
         cur.execute(create_temp_table_sql)
