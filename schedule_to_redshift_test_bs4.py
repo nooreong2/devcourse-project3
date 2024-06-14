@@ -84,7 +84,7 @@ def load(json_df, schema, table):
         logging.info(create_temp_table_sql)
         cur.execute(create_temp_table_sql)
 
-        insert_temp_sql = f"INSERT INTO {temp_table} (date, time, teams, location) VALUES %s"
+        insert_temp_sql = f"INSERT INTO {temp_table} (date, time, teams, location) VALUES (%s, %s, %s, %s)"
         values = [(row["Date"], row["Time"], row["Teams"], row["Location"]) for index, row in df.iterrows()]
         cur.executemany(insert_temp_sql, values)
 
