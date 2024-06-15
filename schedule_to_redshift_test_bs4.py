@@ -26,25 +26,25 @@ def extract():
         logging.info("Request to Naver successful")
 
         soup = BeautifulSoup(response.text, "html.parser")
-        today = datetime.now().strftime("%Y%m%d")
+        event_date = datetime.now().strftime("%Y%m%d")
         games = []
 
-        for game in soup.find_all("tr", class_=f"schedule_{today}"):
+        for game in soup.find_all("tr", class_=f"schedule_{event_date}"):
             try:
-                time = game.find("td", class_="time").text
+                game_time = game.find("td", class_="time").text
                 score_td = game.find("td", class_="score")
                 team_lft = score_td.find("em", class_="team_lft").contents[0].strip()
                 team_rgt = score_td.find("em", class_="team_rgt").contents[0].strip()
                 teams = f"{team_lft} vs {team_rgt}"
                 location = game.find_all("td")[2].text.strip()
-                games.append([today, time, teams, location])
+                games.append([event_date, game_time, teams, location])
             except AttributeError as e:
                 logging.error(f"Error parsing game data: {e}")
 
         if not games:
             logging.warning("No games found for today")
 
-        df = pd.DataFrame(games, columns=["Date", "Time", "Teams", "Location"])
+        df = pd.DataFrame(games, columns=["EventDate", "GameTime", "Teams", "Location"])
         logging.info(f"DataFrame created successfully with {len(df)} rows")
 
         json_df = df.to_json(orient="records")
@@ -62,37 +62,41 @@ def extract():
 def load(json_df, schema, table):
     logging.info("Starting load task")
     conn = None
-    temp_table = None
+    cur = None
+    temp_table = f"{table}_temp"
     try:
         df = pd.read_json(json_df, orient="records")
+        
         cur = get_Redshift_connection()
         conn = cur.connection
 
         # 테이블이 존재하지 않는 경우 생성하는 쿼리
         create_main_table_sql = f"""
         CREATE TABLE IF NOT EXISTS {schema}.{table} (
-            date DATE,
-            time VARCHAR(10),
+            event_date VARCHAR(10),
+            game_time VARCHAR(10),
             teams VARCHAR(100),
             location VARCHAR(100)
         );
         """
-        cur.execute(create_main_table_sql)  
+        cur.execute(create_main_table_sql)
 
-        temp_table = f"{table}_temp"
+        # 임시 테이블 생성
         create_temp_table_sql = f"CREATE TEMP TABLE {temp_table} (LIKE {schema}.{table});"
         logging.info(create_temp_table_sql)
         cur.execute(create_temp_table_sql)
 
-        insert_temp_sql = f"INSERT INTO {temp_table} (date, time, teams, location) VALUES (%s, %s, %s, %s)"
-        values = [(row["Date"], row["Time"], row["Teams"], row["Location"]) for index, row in df.iterrows()]
+        # 데이터 삽입
+        insert_temp_sql = f"INSERT INTO {temp_table} (event_date, game_time, teams, location) VALUES (%s, %s, %s, %s)"
+        values = [(row["EventDate"], row["GameTime"], row["Teams"], row["Location"]) for index, row in df.iterrows()]
         cur.executemany(insert_temp_sql, values)
 
+        # 원본 테이블에 데이터 삽입
         insert_main_sql = f"""
-        INSERT INTO {schema}.{table} (date, time, teams, location)
-        SELECT date, time, teams, location
+        INSERT INTO {schema}.{table} (event_date, game_time, teams, location)
+        SELECT event_date, game_time, teams, location
         FROM {temp_table}
-        WHERE (date, time, teams) NOT IN (SELECT date, time, teams FROM {schema}.{table});
+        WHERE (event_date, game_time, teams) NOT IN (SELECT event_date, game_time, teams FROM {schema}.{table});
         """
         logging.info(insert_main_sql)
         cur.execute(insert_main_sql)
@@ -104,12 +108,9 @@ def load(json_df, schema, table):
         logging.error(f"Error in load task: {e}")
         raise
     finally:
-        if conn and cur:
-            if temp_table:
-                drop_temp_table_sql = f"DROP TABLE IF EXISTS {temp_table};"
-                logging.info(drop_temp_table_sql)
-                cur.execute(drop_temp_table_sql)
+        if cur:
             cur.close()
+        if conn:
             conn.close()
 
 
