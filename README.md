@@ -59,14 +59,14 @@
 
 - 경기 취소조건별 그래프
   
-  (1) 우천취소  
+  (1) 우천  
     - 취소조건  
       - 경기 시작 3시간 전 시간당 10mm 이상  
       - 경기 시작 1시간 전 5mm 이상   
       - 경기 중 5mm 이상이 지속되는 경우  
       ![강수량그래프](https://github.com/nooreong2/devcourse-project3/assets/116233156/f1b38db9-966c-4b9d-92d1-9d58ae9f9d71)
 
-  (2) 폭염취소  
+  (2) 폭염  
     - 최소조건  
       - 35°C 이상인 상태가 2일 이상 지속  
       ![기온그래프](https://github.com/nooreong2/devcourse-project3/assets/116233156/25bad5de-be7c-4805-a461-8d2626ea7df4)
@@ -77,6 +77,7 @@
       ![풍속그래프](https://github.com/nooreong2/devcourse-project3/assets/116233156/300992e6-98b4-4a2b-8b11-d81a4cd39344)
 
   (4) 미세먼지 농도  
-    - PM10(미세먼지) 300μg/m³이상(2시간 이상 지속)  
+    - 취소조건
+      - PM10(미세먼지) 300μg/m³이상(2시간 이상 지속)  
       ![미세먼지그래프](https://github.com/nooreong2/devcourse-project3/assets/116233156/c8555947-b5e3-45ef-9849-00bd9104e777)
 
