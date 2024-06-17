@@ -1,5 +1,5 @@
 from airflow import DAG
-from airflow.operators.python import PythonOperator  # Airflow 2.x에서는 이렇게 import
+from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.utils.dates import days_ago
 from airflow.models import Variable
@@ -17,7 +17,6 @@ def get_Redshift_connection():
     return hook.get_conn().cursor()
 
 
-# 다운로드 및 데이터 정리 함수
 def download_file(file_url, params):
     response = requests.get(file_url, params=params)
     response.encoding = "euc-kr"
@@ -26,7 +25,6 @@ def download_file(file_url, params):
     return cleaned_text
 
 
-# ETL 함수
 def etl(execution_date, schema, table):
     city = ["108", "119"]
     data = ""
@@ -38,12 +36,12 @@ def etl(execution_date, schema, table):
         params = {"tm1": tm1, "tm2": tm2, "stn": stn, "authKey": Variable.get("weather_auth_key")}
 
         response = download_file(url, params)
-        # 헤더를 제외하고 숫자 데이터만 가져오기
+
         numeric_data = re.findall(r"\d{12},\s*\d+,\s*\d+", response)
         for index, line in enumerate(numeric_data):
-            line = line.replace(" ", "")  # 공백 제거
+            line = line.replace(" ", "")
             data += line
-            if index < len(numeric_data) - 1 or stn != city[-1]:  # 마지막 행이 아니거나 마지막 도시가 아니면 개행 추가
+            if index < len(numeric_data) - 1 or stn != city[-1]:
                 data += "\n"
 
     print("execution korea timedate: ", execution_date + timedelta(hours=9))
@@ -51,46 +49,36 @@ def etl(execution_date, schema, table):
 
     cur = get_Redshift_connection()
 
-    # 임시 테이블 생성
     temp_table_name = f"{table}_temp"
     cur.execute(f"CREATE TABLE IF NOT EXISTS {schema}.{temp_table_name} (date TIMESTAMP, stn INT, pm10 INT)")
 
-    # 기존 테이블이 존재하는지 확인
     cur.execute(
         f"SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = '{schema}' AND table_name = '{table}')"
     )
     table_exists = cur.fetchone()[0]
 
     if table_exists:
-        # 기존 데이터를 temp 테이블에 복사
         cur.execute(f"INSERT INTO {schema}.{temp_table_name} SELECT * FROM {schema}.{table}")
 
-    # 새로운 데이터를 temp 테이블에 삽입
     rows = data.strip().split("\n")
+
     for row in rows:
-        # 각 줄에서 데이터를 추출합니다.
         row_data = row.split(",")
-        date = datetime.strptime(row_data[0], "%Y%m%d%H%M")  # 문자열을 datetime 객체로 변환합니다.
-        formatted_date = date.strftime("%Y-%m-%d %H:%M")  # 원하는 형식으로 날짜와 시간을 포맷팅합니다.
+        date = datetime.strptime(row_data[0], "%Y%m%d%H%M")
+        formatted_date = date.strftime("%Y-%m-%d %H:%M")
         stn = int(row_data[1])
         pm10 = int(row_data[2])
-        # 새로운 데이터를 temp 테이블에 삽입합니다.
         cur.execute(f"INSERT INTO {schema}.{temp_table_name} (date, stn, pm10) VALUES (%s, %s, %s)", (formatted_date, stn, pm10))
 
     if table_exists:
-        # 기존 테이블 삭제
         cur.execute(f"DROP TABLE IF EXISTS {schema}.{table}")
 
-    # 임시 테이블 이름 변경
     cur.execute(f"ALTER TABLE {schema}.{temp_table_name} RENAME TO {table}")
 
-    # 변경사항을 저장합니다.
     cur.connection.commit()
-    # Redshift 연결을 닫습니다.
     cur.close()
 
 
-# DAG 정의
 default_args = {
     "owner": "airflow",
     "retries": 1,
@@ -104,8 +92,6 @@ dag = DAG(
     description="ETL DAG for KMA PM10 data",
     schedule_interval="0 * * * *",
 )
-
-# PythonOperator를 사용하여 ETL 작업 수행
 run_etl = PythonOperator(
     task_id="run_etl",
     python_callable=etl,
