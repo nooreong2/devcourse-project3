@@ -15,10 +15,10 @@
 <img width="763" alt="3rd기술아키텍쳐" src="https://github.com/nooreong2/devcourse-project3/assets/116233156/3118d703-694f-498c-81b3-b1da1147ae99">
 
 ## 데이터 수집 및 전처리  
-  (1) 데이터 수집  
+  - 데이터 수집  
     - KBO 야구경기정보(KBO 홈페이지 Crawling)  
     - 강수량/기온/미세먼지/풍속 (기상청API-동네예보조회>단기예보조회)  
-  (2) ERD  
+  - ERD  
     - KBO 야구경기정보	  
       - KBO 당일 경기정보 (경기날짜, 시간, 팀)  
       - 경기장 (잠실,고척,인천,수원)  
@@ -29,10 +29,10 @@
       - 폭염	기온(C)  
     ![3rd 데이터테이블](https://github.com/nooreong2/devcourse-project3/assets/116233156/59c8ac21-0f10-429e-9ec4-7d4a906715e1)
 
-  (3) 데이터 변환 - 수집된 데이터를 분석 및 시각화에 적합한 형태로 변환  
+  - 데이터 변환 - 수집된 데이터를 분석 및 시각화에 적합한 형태로 변환  
     - Pandas를 사용하여 변환 작업 수행  
     - 기상 데이터와 야구 경기 데이터를 맵핑하여 통합 데이터셋 생성  
-  (4) GCE 환경 구축 - Google Cloud Platform(GCP)에 필요한 인프라(VM machine) 구성  
+  - GCE 환경 구축 - Google Cloud Platform(GCP)에 필요한 인프라(VM machine) 구성  
     - Docker Engine을 사용하여 Airflow 자동화 환경 구축  
     - Redshift 데이터베이스 구성 - AWS Redshift 클러스터를 설정하고 데이터베이스와 테이블을 생성  
     - ETL(Extract, Transform, Load) 작업을 통해 변환된 데이터를 Redshift에 적재  
@@ -57,7 +57,8 @@
     - 직관적인 대시보드 레이아웃  
   ![대시보드 전체](https://github.com/nooreong2/devcourse-project3/assets/116233156/eb158cb9-ab84-432a-b68a-1613d346d984)
 
-- 경기 취소조건별 그래프  
+- 경기 취소조건별 그래프
+  
   (1) 우천취소  
     - 취소조건  
       - 경기 시작 3시간 전 시간당 10mm 이상  
@@ -76,6 +77,6 @@
       ![풍속그래프](https://github.com/nooreong2/devcourse-project3/assets/116233156/300992e6-98b4-4a2b-8b11-d81a4cd39344)
 
   (4) 미세먼지 농도  
-      - PM10(미세먼지) 300μg/m³이상(2시간 이상 지속)  
+    - PM10(미세먼지) 300μg/m³이상(2시간 이상 지속)  
       ![미세먼지그래프](https://github.com/nooreong2/devcourse-project3/assets/116233156/c8555947-b5e3-45ef-9849-00bd9104e777)
 
