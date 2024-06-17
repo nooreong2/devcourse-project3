@@ -74,7 +74,8 @@
   (3) 풍속  
     - 취소조건  
       - 풍속 21m/s 이상  
-      ![풍속그래프](https://github.com/nooreong2/devcourse-project3/assets/116233156/300992e6-98b4-4a2b-8b11-d81a4cd39344)
+      ![풍속그래프](https://github.com/nooreong2/devcourse-project3/assets/116233156/8acd94c4-8f4c-4f89-a1a1-b10b6d4cfd71)
+
 
   (4) 미세먼지 농도  
     - 취소조건
