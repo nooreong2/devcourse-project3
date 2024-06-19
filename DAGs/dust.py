@@ -1,15 +1,12 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.utils.dates import days_ago
 from airflow.models import Variable
-from airflow.exceptions import AirflowException
+
 
 from datetime import datetime, timedelta
 import requests
-import logging
 import re
-import uuid
 
 
 def get_Redshift_connection():
@@ -43,9 +40,6 @@ def etl(execution_date, schema, table):
             data += line
             if index < len(numeric_data) - 1 or stn != city[-1]:
                 data += "\n"
-
-    print("execution korea timedate: ", execution_date + timedelta(hours=9))
-    print(data)
 
     cur = get_Redshift_connection()
 
